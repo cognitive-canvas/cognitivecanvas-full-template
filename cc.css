@@ -1,0 +1,65 @@
+:root {
+  --prussian-blue: #003066;
+  --prussian-blue-light: #005080;
+  --prussian-blue-dark: #00004d;
+  --cobalt-blue: #0047ab;
+  --cerulean-blue: #2A52BE;
+  --ultramarine: #3f00ff;
+  --light-blue: #4fc3f7;
+  --viridian: #40826d;
+  --dark-green: #0D4F39;
+  --emerald-green: #00a877;
+  --cobalt-violet: #6e00ff;
+  --purple: #9c27b0;
+  --pink: #e91e63;
+  --vermillion: #e34234;
+  --burnt-sienna: #8a3324;
+  --cadmium-red: #ff3232;
+  --burnt-umber: #8a3324;
+  --raw-umber: #663300;
+  --dark-brown: #663300;
+  --light-brown: #8d6e63;
+  --vandyke-brown: #4D2F19;
+  --orange: #8a3324;
+  --cadmium-yellow: #ffcc00;
+  --ochre: #cc7722;
+  --raw-sienna: #e68a00;
+  --chrome-orange: #ffa600;
+  --naples-yellow: #fada5e;
+  --yellow: #f9a825;
+  --white: #ffffff;
+  --gray: #9e9e9e;
+  --paynes-gray: #3F3F3F;
+  --black: #000000;
+
+  --ui: var(--viridian);
+  --ui-title: white;
+  --ui-a: var(--white);
+  --ui-a-hover: var(--gray);
+  --button: var(--prussian-blue);
+  --button-hover: var(--prussian-blue-dark);
+
+  --card-title-background0: var(--raw-umber);
+  --card-title-background1: var(--dark-brown);
+  --card-title-background2: var(--prussian-blue);
+  --card-title-background3: var(--prussian-blue-dark);
+  --card-title-background4: var(--dark-green);
+  --card-title: var(--white);
+  --alert-red: #B22222;
+  --alert-green: #228B22;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: #F5F5F5;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #666666;
+}
+
+*::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+  background-color: #F5F5F5;
+}
