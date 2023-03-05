@@ -2,55 +2,23 @@ let alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
 let params = new URLSearchParams(window.location.search);
 console.log("params", params);
 let seed = params.get("seed");
-if (seed) {
-  console.log("seed", seed);
-  let mod = BigInt(4294967295);
-  let bigInt = BigInt(seed);
-  let randomNumber = Number(bigInt % mod);
-
-  function customRandom() {
-    let x = randomNumber;
-    return function () {
-      x = (x * 9301 + 49297) % 233280;
-      return x / 233280;
-    };
-  }
-  Math.random = customRandom();
-}
-var fxhash =
-  "oo" +
-  Array(49)
-    .fill(0)
-    .map((_) => alphabet[(Math.random() * alphabet.length) | 0])
-    .join("");
-var cchash = fxhash;
-console.log("cchash", cchash);
-let b58dec = (str) => [...str].reduce((p, c) => (p * alphabet.length + alphabet.indexOf(c)) | 0, 0);
-let fxhashTrunc = fxhash.slice(2);
-let regex = new RegExp(".{" + ((fxhashTrunc.length / 4) | 0) + "}", "g");
-let hashes = fxhashTrunc.match(regex).map((h) => b58dec(h));
-let sfc32 = (a, b, c, d) => {
-  return () => {
-    a |= 0;
-    b |= 0;
-    c |= 0;
-    d |= 0;
-    var t = (((a + b) | 0) + d) | 0;
-    d = (d + 1) | 0;
-    a = b ^ (b >>> 9);
-    b = (c + (c << 3)) | 0;
-    c = (c << 21) | (c >>> 11);
-    c = (c + t) | 0;
-    return (t >>> 0) / 4294967296;
+console.log("q seed", seed);
+if (!seed) seed = Math.floor(Math.random() * 1000000000).toString();
+console.log("seed", seed);
+let mod = BigInt(4294967295);
+let bigInt = BigInt(seed);
+let randomNumber = Number(bigInt % mod);
+function customRandom() {
+  let x = randomNumber;
+  return function () {
+    x = (x * 9301 + 49297) % 233280;
+    return x / 233280;
   };
-};
-var fxrand = sfc32(...hashes);
-var ccrand = fxrand;
+}
+var ccrand = customRandom();
 
-// true if preview mode active, false otherwise
-var isFxpreview = params.get("preview") === "1";
-var isCCpreview = isFxpreview;
-var isCClive = isFxpreview;
+// true if live mode
+var isCClive = params.get("preview") === "1" || params.get("live") === "1";
 
 // functions to interact with the mint configuration
 
@@ -199,4 +167,45 @@ function ccSaveBinaryFileFromUIint8(uint8, path, fname) {
       "*"
     );
   } catch (e) {}
+}
+
+// Get an image that is saved in the param directory
+function ccLoadImage(fname, cb) {
+  if (isCClive) {
+    try {
+      window.top.postMessage(
+        {
+          type: "loadImage",
+          fname,
+        },
+        "*"
+      );
+    } catch (e) {}
+  } else {
+    loadImage(fname, cb);
+  }
+}
+
+async function ccFetchBlobFromParams(fname, mime) {
+  const message = { type: "load_params_file_as_blob", fname, mime };
+  const promise = new Promise((resolve) => {
+    function listener(event) {
+      if (event.data.type === "loaded_params_file_as_blob") {
+        window.removeEventListener("message", listener);
+        resolve(event.data.blob);
+      }
+    }
+    window.addEventListener("message", listener);
+  });
+  window.top.postMessage(message, "*");
+  return promise;
+}
+
+async function ccFetchUrlFromParams(fname, mime) {
+  if (isCClive) {
+    const blob = await ccFetchBlobFromParams(fname, mime);
+    return URL.createObjectURL(blob);
+  } else {
+    return `./params/${fname}`;
+  }
 }
