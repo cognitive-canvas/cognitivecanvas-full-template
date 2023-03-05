@@ -34,5 +34,5 @@ it can easily be adopted to many use cases. The template uses p5.js.
 Be sure to read [Publishing](https://cognitivecanvas.xyz/public/doc/publishing) which contains details of how
 to collections work.
 
-Also, read the comments in [sketch.js](./blob/main/sketch.js), and [cc.js](./blob/main/cc.js) contains our library that contains
+Also, read the comments in [sketch.js](./sketch.js), and [cc.js](./cc.js) contains our library that contains
 the functions you need to get services from CC during live minting.
