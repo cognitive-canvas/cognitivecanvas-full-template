@@ -206,8 +206,12 @@ async function ccFetchBlobFromParams(fname, mime) {
 
 async function ccFetchUrlFromParams(fname, mime) {
   if (isCClive) {
-    const blob = await ccFetchBlobFromParams(fname, mime);
-    return URL.createObjectURL(blob);
+    try {
+      const blob = await ccFetchBlobFromParams(fname, mime);
+      return URL.createObjectURL(blob);
+    } catch (e) {
+      return null;
+    }
   } else {
     return `./params/${fname}`;
   }

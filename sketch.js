@@ -17,70 +17,47 @@
   that you can use to retrieve 'params' files whether you are in live mint mode or in normal viewing 
   mode.
 
-  You need to use the 'ccFetchUrlFromParams' function to get the urls for any files you want get from
+  So just use the 'ccFetchUrlFromParams' function to get the urls for any files you want get from
   the configured live mint so that your logic will be the same whether you are in live mint mode or
   just showing a configured mint in the normal way.
-
-  This is all well and fine, and makes thing easy, but p5js sucks badly at async procesing, so we need 
-  to load these urls somewhere (they are async functions). We could do it in the preload function, but 
-  then you would have to load everything in preload, which might not always be desired (preload stalls 
-  the drawing until everything loads, etc.).
-
-  In order to make things consistent when using p5, we can load the urls first, as that will be fast 
-  when running in either mode. So no matter how many files you are saving during live minting, this 
-  method is fast and efficient.
-
-  So we have a small async function that loads all the urls first, and then create and start the sketch.
-  You can then use the urls wherever you want, in preload, setup, or whereever. It's better to use
-  a new p5 sketch anyway, as it avoids name clashes, etc.
 
   Since there may be communication with the iframe parent, we do the startup in the 'load'
   event, which is recommended anyway.
 
 */
 
-let paramsUrl;
-let thumbnailUrl;
+let paramsUrl = null;
 // put your other urls here...
 async function preloadParamUrls() {
   paramsUrl = await ccFetchUrlFromParams("params.json", "application/json");
-  // This just an example of how to get an image.
-  // thumbnailUrl = await ccFetchUrlFromParams("thumbnail.png", "image/png");
-  // load your other urls here...
 }
 
 let psk;
 window.addEventListener("load", async (event) => {
   // Load the urls. After this runs we can use them anywhere.
   await preloadParamUrls();
+  try {
+    if (paramsUrl) {
+      const res = await fetch(paramsUrl, { redirect: "follow" });
+      if (res.status === 200) {
+        parameters = await res.json();
+      }
+    }
+  } catch (e) {}
+
+  // This is the background select element
+  const eleSelect = document.getElementById("background");
 
   // Start the sketch
   psk = new p5(function (psk) {
-    psk.preload = function () {
-      psk.loadJSON(
-        paramsUrl,
-        (json) => {
-          // success, use the new parameters
-          restoreParameters(json, () => psk.loop());
-        },
-        () => {
-          // failed, load the background with defaults
-          restoreParameters(parameters, () => psk.loop());
-        }
-      );
-
-      //
-      // This is an example of how you would get an image.
-      //
-      // psk.loadImage(
-      //   thumbnailUrl,
-      //   (img) => {
-      //     console.log("thumbnail loaded", img);
-      //   },
-      //   () => {
-      //     console.log('thumbnail load failed')
-      //   }
-      // );
+    /*
+      This is the onchange event handler for the select background control in the UI.
+    */
+    eleSelect.onchange = function (event) {
+      parameters.selected = event.target.selectedIndex;
+      loadBackground();
+      // Save the parameters in params.json
+      saveParams();
     };
 
     psk.setup = function () {
@@ -93,6 +70,9 @@ window.addEventListener("load", async (event) => {
 
       // ready to go
       readyLive();
+
+      // Load current background image, start loop after it loads
+      restoreParameters();
     };
 
     psk.draw = function () {
@@ -101,7 +81,6 @@ window.addEventListener("load", async (event) => {
       if (backgroundImg) {
         psk.image(backgroundImg, 0, 0, psk.width, psk.height);
       }
-
       psk.noLoop();
     };
 
@@ -110,6 +89,34 @@ window.addEventListener("load", async (event) => {
       if (psk.width !== width || psk.height !== height) psk.resizeCanvas(width, height);
       resizeUI();
     };
+
+    /*
+      This loads the the selected background if it is not already loaded. It has a callback, since whoever loads
+      the image needs to get notified when it is ready.
+
+      For this example, the callbacks just call loop() to enable the draw loop to redraw the selected image.
+    */
+    function loadBackground() {
+      const idx = parameters.selected;
+      backgroundImg = loaded[idx];
+      if (backgroundImg !== null) {
+        psk.loop();
+      } else {
+        const backgroundUrl = backgrounds[idx];
+        psk.loadImage(backgroundUrl, (img) => {
+          loaded[idx] = backgroundImg = img;
+          psk.loop();
+        });
+      }
+    }
+
+    /*
+      Updates the select control index, and loads the background from the current selection
+    */
+    function restoreParameters() {
+      eleSelect.selectedIndex = parameters.selected;
+      loadBackground();
+    }
   });
 });
 
@@ -178,12 +185,6 @@ function showParams() {
   console.log("parameters", parameters);
 }
 
-function restoreParameters(params, cb) {
-  parameters = params;
-  document.getElementById("background").selectedIndex = parameters.selected;
-  loadBackground(cb);
-}
-
 /*
   If isCClive is set, then this is a live mint. Show the configuration GUI. 
 */
@@ -206,8 +207,10 @@ function isFullscreen() {
 }
 
 /*
-  This just changes the body flex container to center everything if the window is large enough in
-  full screen mode, of if not in live mode.
+  This changes the body flex container to center everything if the window is large enough in
+  full screen mode, or if not in live mode.
+
+  If in live mode, it sets the iframe size to my liking
 */
 function resizeUI() {
   resizeParams();
@@ -224,12 +227,16 @@ function resizeUI() {
   }
   document.body.style.justifyContent = justify;
   document.body.style.alignItems = align;
-  ccSetSize(wwidth, wheight);
+  setSize(wwidth, wheight);
+}
+
+function setSize(wwidth, wheight) {
+  if (isCClive) ccSetSize(wwidth, wheight);
 }
 
 /*
   Enable user thumbnail generation and enable the prepare button. For this simple example, we can enable these buttons
-  in setup. For other more complicated examples, you can use your own logic to determine when enable the buttons.
+  in setup. For other more complicated examples, you can use your own logic to determine to when enable the buttons.
 */
 function readyLive() {
   if (isCClive) {
@@ -261,35 +268,6 @@ function resizeParams() {
   wwidth = isCClive ? dim + 500 : dim;
   wheight = dim;
   return { width: dim, height: dim };
-}
-
-/*
-  This is the onchange event handler for the select background control in the UI.
-*/
-function selectBackground(event) {
-  parameters.selected = event.target.selectedIndex;
-  loadBackground((img) => psk.loop());
-  saveParams();
-}
-
-/*
-  This loads the the selected background if it is not already loaded. It has a callback, since whoever loads
-  the image needs to get notified when it is ready.
-
-  For this example, the callbacks just call loop() to enable the draw loop to redraw the selected image.
-*/
-function loadBackground(cb) {
-  const idx = parameters.selected;
-  backgroundImg = loaded[idx];
-  if (backgroundImg !== null) {
-    if (cb) cb(backgroundImg);
-  } else {
-    const backgroundUrl = backgrounds[idx];
-    psk.loadImage(backgroundUrl, (img) => {
-      loaded[idx] = backgroundImg = img;
-      if (cb) cb(img);
-    });
-  }
 }
 
 /*
