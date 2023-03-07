@@ -1,21 +1,24 @@
-let alphabet = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ";
 let params = new URLSearchParams(window.location.search);
 console.log("params", params);
 let seed = params.get("seed");
 console.log("q seed", seed);
 if (!seed) seed = Math.floor(Math.random() * 1000000000).toString();
 console.log("seed", seed);
-let mod = BigInt(4294967295);
-let bigInt = BigInt(seed);
-let randomNumber = Number(bigInt % mod);
-function customRandom() {
-  let x = randomNumber;
-  return function () {
-    x = (x * 9301 + 49297) % 233280;
-    return x / 233280;
-  };
+
+function ccCreateRand(seed) {
+  let mod = BigInt(4294967295);
+  let bigInt = BigInt(seed);
+  let randomNumber = Number(bigInt % mod);
+  function customRandom() {
+    let x = randomNumber;
+    return function () {
+      x = (x * 9301 + 49297) % 233280;
+      return x / 233280;
+    };
+  }
+  return customRandom();
 }
-var ccrand = customRandom();
+var ccrand = ccCreateRand(seed);
 
 // true if live mode
 var isCClive = params.get("preview") === "1" || params.get("live") === "1";
